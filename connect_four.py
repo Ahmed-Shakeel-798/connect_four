@@ -9,6 +9,11 @@ class ConnectFour:
         self.current_player = "X"
 
 
+    def reset(self):
+        self.board = [["." for _ in range(self.COLS)] for _ in range(self.ROWS)] 
+        self.current_player = "X"
+
+
     def legal_moves(self):
         """Return list of column indices where a move is possible."""
         return [c for c in range(self.COLS) if self.board[0][c] == "."] # A column is full if the top row is filled.

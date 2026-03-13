@@ -4,7 +4,7 @@ from connect_four import ConnectFour
 pygame.init()
 
 WIDTH = 800
-HEIGHT = 800
+HEIGHT = 850
 CELL = 100
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -15,6 +15,7 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
+GRAY = (200, 200, 200)
 
 board = ConnectFour()
 
@@ -22,9 +23,15 @@ BOARD_WIDTH = board.COLS * CELL
 BOARD_HEIGHT = board.ROWS * CELL
 
 offset_x = (WIDTH - BOARD_WIDTH) // 2
-offset_y = (HEIGHT - BOARD_HEIGHT) // 2 + 40  # leave space for heading
+offset_y = (HEIGHT - BOARD_HEIGHT) // 2 + 40
 
 font = pygame.font.SysFont(None, 48)
+small_font = pygame.font.SysFont(None, 36)
+
+winner = None
+game_over = False
+
+reset_button = pygame.Rect(WIDTH // 2 - 75, HEIGHT - 80, 150, 50)
 
 
 def draw_heading():
@@ -62,6 +69,25 @@ def draw_board():
             )
 
 
+def draw_reset_button():
+    pygame.draw.rect(screen, GRAY, reset_button)
+    text = small_font.render("Reset", True, BLACK)
+    text_rect = text.get_rect(center=reset_button.center)
+    screen.blit(text, text_rect)
+
+
+def draw_winner():
+    if winner:
+        popup = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - 80, 400, 160)
+        pygame.draw.rect(screen, WHITE, popup)
+        pygame.draw.rect(screen, BLACK, popup, 3)
+
+        text = font.render(f"{winner} wins!", True, BLACK)
+        text_rect = text.get_rect(center=popup.center)
+
+        screen.blit(text, text_rect)
+
+
 running = True
 
 while running:
@@ -73,20 +99,37 @@ while running:
 
         if event.type == pygame.MOUSEBUTTONDOWN:
 
-            x = event.pos[0]
+            mouse_pos = event.pos
 
-            col = (x - offset_x) // CELL
+            # Reset button
+            if reset_button.collidepoint(mouse_pos):
+                board.reset()
+                winner = None
+                game_over = False
+            
+            elif not game_over:
 
-            if 0 <= col < board.COLS:
-                try:
-                    board.move(col)
-                except:
-                    pass
+                x = mouse_pos[0]
+                col = (x - offset_x) // CELL
+
+                if 0 <= col < board.COLS:
+                    try:
+                        row, col, player, win = board.move(col)
+                        board.print_board()
+
+                        if win:
+                            winner = player
+                            game_over = True
+
+                    except:
+                        pass
 
     screen.fill(BLACK)
 
     draw_heading()
     draw_board()
+    draw_reset_button()
+    draw_winner()
 
     pygame.display.update()
 
