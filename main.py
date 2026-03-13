@@ -6,29 +6,45 @@ board = ConnectFour()
 player_x = LLMPlayer("llama3.2", "X")
 player_o = LLMPlayer("llama3.2", "O")
 
-board.print_board()
-
-result = player_x.make_move(board)
-
-print(result)
-
-move = result["move"]
-
-row, col, player, win = board.move(move)
+players = {
+    "X": player_x,
+    "O": player_o
+}
 
 board.print_board()
 
+while True:
 
-# board = ConnectFour()
-# board.move(3)
-# board.move(2)
-# board.move(5)
-# board.move(7)
+    current_mark = board.current_player
+    player = players[current_mark]
 
+    print(f"\nPlayer {current_mark}'s turn")
 
-# print(board.to_llm_json())
+    try:
+        result = player.make_move(board)
 
+        print("LLM response:")
+        print(result)
 
-# board.print_board()
+        move = result["move"]
 
-# print("Legal moves:", [ConnectFour.COL_LABELS[c] for c in board.legal_moves()])
+        row, col, player_mark, win = board.move(move)
+
+        board.print_board()
+
+        if win:
+            print(f"\nPlayer {player_mark} wins!")
+            break
+
+        if not board.legal_moves():
+            print("\nGame is a draw.")
+            break
+
+    except Exception as e:
+
+        print(f"\nError occurred: {e}")
+
+        winner = "O" if current_mark == "X" else "X"
+        print(f"Player {winner} wins by opponent error.")
+
+        break

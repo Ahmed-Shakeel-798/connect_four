@@ -58,6 +58,8 @@ Choose your move.
 
         state = board.to_llm_json()
 
+        print("Player" + self.mark + " is thinking...")
+
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
