@@ -1,9 +1,13 @@
 import pygame
+import threading
 from connect_four import ConnectFour
 from player import LLMPlayer
 
-player_x = LLMPlayer("llama3.2", "X")
-player_o = LLMPlayer("llama3.2", "O")
+OLLAMA_BASE_URL = "http://localhost:11434/v1"
+API_KEY = "ollama"
+
+player_x = LLMPlayer(OLLAMA_BASE_URL, "llama3.2", API_KEY, "X")
+player_o = LLMPlayer(OLLAMA_BASE_URL, "llama3.2", API_KEY, "O")
 
 players = {
     "X": player_x,
@@ -41,7 +45,6 @@ winner = None
 game_over = False
 
 reset_button = pygame.Rect(WIDTH // 2 - 75, HEIGHT - 80, 150, 50)
-
 
 def draw_heading():
     text = font.render("Connect 4 <3", True, WHITE)
@@ -108,9 +111,38 @@ def draw_winner():
 
         screen.blit(text, text_rect)
 
+def compute_move():
+    global pending_move, ai_thinking, winner, game_over
+
+    current_mark = board.current_player
+    player = players[current_mark]
+
+    try:
+        result = player.make_move(board)
+        print(player.mark + " move result:" + str(result))
+
+        move = result["move"]
+
+        with move_lock:
+            pending_move = move
+
+    except Exception as e:
+        print(f"\nError occurred: {e}")
+
+        winner = "O" if current_mark == "X" else "X"
+        game_over = True
+
+    finally:
+        ai_thinking = False
+
+
+waiting_for_move = True
+
+ai_thinking = False
+pending_move = None
+move_lock = threading.Lock()
 
 running = True
-waiting_for_move = True
 
 while running:
 
@@ -127,7 +159,8 @@ while running:
                 board.reset()
                 winner = None
                 game_over = False
-                waiting_for_move = True
+                pending_move = None
+                ai_thinking = False
 
     screen.fill(BLACK)
 
@@ -138,40 +171,27 @@ while running:
 
     pygame.display.update()
 
-    # ----- AI move happens AFTER rendering -----
+    if pending_move is not None and not game_over:
 
-    if not game_over and waiting_for_move:
+        with move_lock:
+            move = pending_move
+            pending_move = None
 
-        waiting_for_move = False
+        row, col, player_mark, win = board.move(move)
+        board.print_board()
 
-        current_mark = board.current_player
-        player = players[current_mark]
-
-        print(f"\nPlayer {current_mark}'s turn")
-
-        try:
-            result = player.make_move(board)
-
-            print("LLM response:")
-            print(result)
-
-            move = result["move"]
-
-            row, col, player_mark, win = board.move(move)
-            board.print_board()
-
-            if win:
-                winner = player_mark
-                game_over = True
-
-        except Exception as e:
-            print(f"\nError occurred: {e}")
-
-            winner = "O" if current_mark == "X" else "X"
-            print(f"Player {winner} wins by opponent error.")
-
+        if win:
+            winner = player_mark
             game_over = True
 
-        waiting_for_move = True
+    # ----- AI move happens AFTER rendering -----
+
+    if not game_over and not ai_thinking:
+
+        ai_thinking = True
+
+        thread = threading.Thread(target=compute_move)
+        thread.daemon = True
+        thread.start()
 
 pygame.quit()
