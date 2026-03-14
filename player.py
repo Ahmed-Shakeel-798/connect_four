@@ -1,14 +1,12 @@
 import json
 from openai import OpenAI
 
-OLLAMA_BASE_URL = "http://localhost:11434/v1"
-
 class LLMPlayer:
     
-    def __init__(self, model, mark):
+    def __init__(self, llm_base_url, model, api_key, mark):
         self.model = model
         self.mark = mark
-        self.client = OpenAI(base_url=OLLAMA_BASE_URL, api_key='ollama')
+        self.client = OpenAI(base_url=llm_base_url, api_key=api_key)
 
         self.system_prompt = f"""
 You are a Connect Four player.
